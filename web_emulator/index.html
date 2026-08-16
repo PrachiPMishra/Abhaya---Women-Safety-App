@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABHAYA — Android Safety Engine & Live Location</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <div class="brand-text">
+        <h1>ABHAYA <span>Safety Application Engine</span></h1>
+        <p>Discreet Safety Application & Trusted Contact Live Tracking</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="viewToggleBtn" class="btn secondary"><i class="fa-solid fa-mobile-screen"></i> <span>Toggle Phone Frame</span></button>
+      <button id="resetOnboardingBtn" class="btn warning"><i class="fa-solid fa-rotate-left"></i> <span>Reset Account Setup</span></button>
+      <span class="status-indicator online" id="backendStatus"><i class="fa-solid fa-server"></i> Safety Backend: Connected</span>
+    </div>
+  </header>
+
+  <main class="emulator-container">
+    <!-- Main Device Wrapper -->
+    <div class="device-wrapper" id="deviceWrapper">
+      <div class="phone-frame">
+        <div class="phone-notch">
+          <div class="camera-lens"></div>
+          <div class="speaker-grill"></div>
+        </div>
+
+        <div class="phone-screen">
+          <div class="status-bar">
+            <div class="time" id="currentTime">17:55</div>
+            <div class="icons">
+              <i class="fa-solid fa-wifi"></i>
+              <i class="fa-solid fa-signal"></i>
+              <i class="fa-solid fa-battery-full"></i>
+            </div>
+          </div>
+
+          <div class="screen-content">
+            <!-- 1. Onboarding & Login Screen View -->
+            <div id="onboardingView" class="view-panel active">
+              <div class="onboarding-card">
+                <div class="onboarding-header">
+                  <div class="shield-badge"><i class="fa-solid fa-user-shield"></i></div>
+                  <h2>Account Safety Setup</h2>
+                  <p>Authentication & Safety Profile Setup</p>
+                  <div class="step-progress">
+                    <span class="step-dot active" data-step="1"></span>
+                    <span class="step-dot" data-step="2"></span>
+                    <span class="step-dot" data-step="3"></span>
+                    <span class="step-dot" data-step="4"></span>
+                  </div>
+                </div>
+
+                <div class="onboarding-body">
+                  <!-- Step 1A: Phone Number Verification & DB Lookup -->
+                  <div id="onboardStep1A" class="step-content active">
+                    <h3>Step 1: Mobile Phone Verification</h3>
+                    <p class="subtitle">Enter your phone number to sign in or register</p>
+                    <div class="form-group">
+                      <label>Mobile Phone Number</label>
+                      <input type="tel" id="userPhone" value="+1 (555) 019-2831">
+                    </div>
+                    <button id="sendUserOtpBtn" class="btn primary full"><i class="fa-solid fa-paper-plane"></i> Send Verification SMS</button>
+                    
+                    <div id="userOtpGroup" class="form-group hidden mt-2">
+                      <label>Enter 6-Digit SMS Verification OTP</label>
+                      <input type="text" id="userOtpCode" placeholder="Enter 6-digit code" maxlength="6">
+                      <button id="verifyUserOtpBtn" class="btn success full mt-2"><i class="fa-solid fa-check"></i> Verify Phone & Check Account</button>
+                    </div>
+                  </div>
+
+                  <!-- Step 1B: Personal Details Registration Form (For New Users) -->
+                  <div id="onboardStep1B" class="step-content hidden">
+                    <h3>Personal Details Registration</h3>
+                    <p class="subtitle">Complete your safety profile details</p>
+                    <div class="form-group">
+                      <label>Full Name</label>
+                      <input type="text" id="userName" value="Pravin Kumar">
+                    </div>
+                    <div class="form-group">
+                      <label>Date of Birth (DOB)</label>
+                      <input type="text" id="userDob" value="1995-08-15" placeholder="YYYY-MM-DD">
+                    </div>
+                    <div class="form-group">
+                      <label>Full Address</label>
+                      <input type="text" id="userAddress" value="123 Safety Ave, City, Country">
+                    </div>
+                    <div class="form-group">
+                      <label>Email Address</label>
+                      <input type="text" id="userEmail" value="pravin@example.com">
+                    </div>
+                    <button id="savePersonalDetailsBtn" class="btn primary full mt-2">Continue to Trusted Contacts <i class="fa-solid fa-arrow-right"></i></button>
+                  </div>
+
+                  <!-- Step 2: Trusted Contacts Setup (Min 1, Max 3) -->
+                  <div id="onboardStep2" class="step-content hidden">
+                    <h3>Step 2: Emergency Trusted Contacts</h3>
+                    <p class="subtitle">Add verified emergency contacts (Min 1, Max 3)</p>
+                    
+                    <div id="contactsContainer">
+                      <!-- Contact 1 -->
+                      <div class="contact-card-form" id="contactCard1">
+                        <h4>Trusted Contact 1 (Primary)</h4>
+                        <div class="form-group">
+                          <label>Full Name</label>
+                          <input type="text" class="cnt-name" value="Guardian Contact 1">
+                        </div>
+                        <div class="form-group">
+                          <label>Mobile Phone Number</label>
+                          <input type="tel" class="cnt-phone" value="+1 (555) 999-8888">
+                        </div>
+                        <div class="form-group">
+                          <label>Email Address</label>
+                          <input type="text" class="cnt-email" value="guardian1@example.com">
+                        </div>
+                        <button class="btn secondary full send-cnt-otp-btn"><i class="fa-solid fa-paper-plane"></i> Verify Contact Phone via OTP</button>
+                        <div class="cnt-otp-group hidden mt-2">
+                          <input type="text" class="cnt-otp-code" placeholder="Enter 6-digit code" maxlength="6">
+                          <button class="btn success full mt-1 verify-cnt-otp-btn">Confirm OTP Code</button>
+                        </div>
+                        <div class="cnt-status-badge mt-1">Status: Unverified</div>
+                      </div>
+                    </div>
+
+                    <button id="addContactBtn" class="btn secondary full mt-2"><i class="fa-solid fa-plus"></i> Add Another Trusted Contact (Max 3)</button>
+                    <button id="proceedStep3Btn" class="btn primary full mt-3">Continue to Security Codes <i class="fa-solid fa-arrow-right"></i></button>
+                  </div>
+
+                  <!-- Step 3: Security Triggers & Backup Codes Setup -->
+                  <div id="onboardStep3" class="step-content hidden">
+                    <h3>Step 3: Security Codes Setup</h3>
+                    <p class="subtitle">Configure discreet calculator primary & backup expressions</p>
+                    <div class="form-group">
+                      <label>Emergency Activation Expression</label>
+                      <input type="text" id="activationCode" value="99+99" placeholder="e.g. 99+99">
+                    </div>
+                    <div class="form-group">
+                      <label>Backup Activation Code</label>
+                      <input type="text" id="backupActivationCode" value="9999" placeholder="e.g. 9999">
+                    </div>
+                    <div class="form-group">
+                      <label>Emergency Deactivation Expression</label>
+                      <input type="text" id="deactivationCode" value="11+11" placeholder="e.g. 11+11">
+                    </div>
+                    <div class="form-group">
+                      <label>Backup Deactivation Code</label>
+                      <input type="text" id="backupDeactivationCode" value="1111" placeholder="e.g. 1111">
+                    </div>
+                    <button id="saveSafetyCodesBtn" class="btn primary full mt-2"><i class="fa-solid fa-key"></i> Save Primary & Backup Codes</button>
+                  </div>
+
+                  <!-- Step 4: System Permissions Setup -->
+                  <div id="onboardStep4" class="step-content hidden">
+                    <h3>Step 4: System Permissions</h3>
+                    <p class="subtitle">Grant background hardware permissions</p>
+                    <div class="permission-list">
+                      <div class="perm-item">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <div class="perm-text">
+                          <h4>Background Location</h4>
+                          <p>Continuous GPS stream during emergency</p>
+                        </div>
+                        <i class="fa-solid fa-check-circle check"></i>
+                      </div>
+                      <div class="perm-item">
+                        <i class="fa-solid fa-camera"></i>
+                        <div class="perm-text">
+                          <h4>Camera Evidence</h4>
+                          <p>Photo evidence capture on active emergency</p>
+                        </div>
+                        <i class="fa-solid fa-check-circle check"></i>
+                      </div>
+                      <div class="perm-item">
+                        <i class="fa-solid fa-microphone"></i>
+                        <div class="perm-text">
+                          <h4>Microphone Audio</h4>
+                          <p>Audio recording metadata storage</p>
+                        </div>
+                        <i class="fa-solid fa-check-circle check"></i>
+                      </div>
+                    </div>
+                    <button id="completeOnboardingBtn" class="btn success full mt-3"><i class="fa-solid fa-lock"></i> Finalize Setup & Launch Calculator</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Calculator Disguise View -->
+            <div id="calculatorView" class="view-panel">
+              <div class="calc-header">
+                <div class="disguise-label"><i class="fa-solid fa-calculator"></i> Calculator</div>
+              </div>
+              <div class="calc-display-container">
+                <div class="calc-expression" id="calcExpression"> </div>
+                <div class="calc-display" id="calcDisplay">0</div>
+              </div>
+              <div class="calc-keypad">
+                <div class="row">
+                  <button class="key function" data-key="C">C</button>
+                  <button class="key function" data-key="( )">( )</button>
+                  <button class="key function" data-key="%">%</button>
+                  <button class="key operator" data-key="÷">÷</button>
+                </div>
+                <div class="row">
+                  <button class="key" data-key="7">7</button>
+                  <button class="key" data-key="8">8</button>
+                  <button class="key" data-key="9">9</button>
+                  <button class="key operator" data-key="×">×</button>
+                </div>
+                <div class="row">
+                  <button class="key" data-key="4">4</button>
+                  <button class="key" data-key="5">5</button>
+                  <button class="key" data-key="6">6</button>
+                  <button class="key operator" data-key="-">-</button>
+                </div>
+                <div class="row">
+                  <button class="key" data-key="1">1</button>
+                  <button class="key" data-key="2">2</button>
+                  <button class="key" data-key="3">3</button>
+                  <button class="key operator" data-key="+">+</button>
+                </div>
+                <div class="row">
+                  <button class="key" data-key="+/-">+/-</button>
+                  <button class="key" data-key="0">0</button>
+                  <button class="key" data-key=".">.</button>
+                  <button class="key action" data-key="=">=</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Telemetry & Inspector Drawer -->
+    <div class="inspector-panel">
+      <div class="panel-header">
+        <h3><i class="fa-solid fa-microchip"></i> Safety Engine & Live Location Monitor</h3>
+        <span class="badge" id="domainStateBadge">INACTIVE</span>
+      </div>
+
+      <div class="panel-section">
+        <h4>Emergency Telemetry</h4>
+        <div class="telemetry-grid">
+          <div class="tele-item">
+            <span class="label">Session ID</span>
+            <span class="value" id="telemetrySessionId">None (Standby)</span>
+          </div>
+          <div class="tele-item">
+            <span class="label">Escalation Severity</span>
+            <span class="value" id="telemetryEscalation">0 (Normal)</span>
+          </div>
+          <div class="tele-item">
+            <span class="label">Trusted Contact Live Link</span>
+            <span class="value link" id="telemetryTrackingToken">Session-Bound & Tokenized</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h4>Trusted Contact Live Location Stream</h4>
+        <div id="leafletMap" class="map-container"></div>
+        <div class="map-metadata">
+          <div class="coord-info">
+            <span><i class="fa-solid fa-location-crosshairs"></i> Lat: <strong id="mapLat">28.6139° N</strong></span>
+            <span>Lng: <strong id="mapLng">77.2090° E</strong></span>
+          </div>
+          <div id="gpsStreamStatus" class="stream-status">GPS Stream: Standby</div>
+        </div>
+        <div class="maps-handoff-bar">
+          <a id="gmapsLink" href="https://maps.google.com/?q=28.6139,77.2090" target="_blank" class="btn handoff gmaps">
+            <i class="fa-solid fa-map-location-dot"></i> Open in Google Maps (Android)
+          </a>
+          <a id="amapsLink" href="https://maps.apple.com/?q=28.6139,77.2090" target="_blank" class="btn handoff amaps">
+            <i class="fa-solid fa-compass"></i> Open in Apple Maps (iOS)
+          </a>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h4>Tamper Simulation & Escalation Controls</h4>
+        <div class="controls-grid" style="flex-direction: column; gap: 10px;">
+          <button id="simPowerOffBtn" class="btn danger"><i class="fa-solid fa-power-off"></i> Simulate Power-Off Attempt</button>
+          <button id="simGpsOffBtn" class="btn warning"><i class="fa-solid fa-location-slash"></i> Simulate Turning Off GPS</button>
+          <button id="simImpactBtn" class="btn secondary"><i class="fa-solid fa-triangle-exclamation"></i> Simulate Physical Device Impact</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h4>Realtime Engine Activity Logs</h4>
+        <div class="activity-logs" id="activityLogs">
+          <div class="log-line info">[System] ABHAYA Emergency Session Backend initialized.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
